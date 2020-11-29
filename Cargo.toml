@@ -1,0 +1,17 @@
+[package]
+name = "logview"
+version = "0.1.0"
+authors = ["David Loewe <49597367+TumbleOwlee@users.noreply.github.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+atty = "*"
+cursive = { path = "../../Github/cursive/cursive", features = ["toml", "crossterm"] }
+arraydeque = "0.4.5"
+clap = "2.33.3"
+regex = "1.4.2"
+nom = "6.0.0"
+num-derive = "0.3.3"
+num-traits = "0.2.14"
