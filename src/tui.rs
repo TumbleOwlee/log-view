@@ -17,7 +17,7 @@ use crate::string::ColoredString;
 
 type HistoryHide = HideableView<LinearLayout>;
 type HistoryScroll = ScrollView<ResizedView<NamedView<SelectView>>>;
-type ContentScroll = ScrollView<NamedView<SelectView>>;
+type ContentScroll = ScrollView<ResizedView<NamedView<SelectView>>>;
 type ContentEvent = OnEventView<NamedView<ContentScroll>>;
 type ContentEnableable = EnableableView<NamedView<ContentEvent>>;
 type CommandHide = HideableView<LinearLayout>;
@@ -125,6 +125,7 @@ impl Tui {
                                         OnEventView::new(
                                             SelectView::<String>::new()
                                                 .with_name(CONTENT_VIEW)
+                                                .full_width()
                                                 .scrollable()
                                                 .show_scrollbars(false)
                                                 .scroll_y(true)
