@@ -1,19 +1,18 @@
-
-use arraydeque::{ArrayDeque, Array};
 use arraydeque::behavior::Wrapping;
+use arraydeque::{Array, ArrayDeque};
 
 use crate::source::{Source, TryRead};
 
-pub struct SourceBuffer<A: Array<Item=I>, I: Send> {
+pub struct SourceBuffer<A: Array<Item = I>, I: Send> {
     buffer: ArrayDeque<A, Wrapping>,
-    handle: Source<I>
+    handle: Source<I>,
 }
 
-impl<'a, A: Array<Item=I>, I: 'a + Send + Clone> SourceBuffer<A, I> {
+impl<'a, A: Array<Item = I>, I: 'a + Send + Clone> SourceBuffer<A, I> {
     pub fn new(handle: Source<A::Item>) -> Self {
         Self {
             buffer: ArrayDeque::new(),
-            handle
+            handle,
         }
     }
 

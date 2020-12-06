@@ -1,19 +1,24 @@
-
-use cursive::{CbSink, views::{HideableView, TextView, ResizedView, LinearLayout, EditView, SelectView, ScrollView, NamedView, OnEventView, TextContent, EnableableView, Panel, DummyView}};
-use cursive::view::{Scrollable, ScrollStrategy};
-use cursive::traits::{Nameable, Resizable};
 use cursive::event::Key;
 use cursive::theme::Style;
-use cursive::{Cursive, CursiveExt};
+use cursive::traits::{Nameable, Resizable};
 use cursive::utils::span::SpannedString;
+use cursive::view::{ScrollStrategy, Scrollable};
+use cursive::{
+    views::{
+        DummyView, EditView, EnableableView, HideableView, LinearLayout, NamedView, OnEventView,
+        Panel, ResizedView, ScrollView, SelectView, TextContent, TextView,
+    },
+    CbSink,
+};
+use cursive::{Cursive, CursiveExt};
 
 use std::io::prelude::Write;
 
 use crate::buffer::SourceBuffer;
 use crate::error::Error;
 use crate::source::Source;
-use crate::{BUFFER_SIZE, TITLE};
 use crate::string::ColoredString;
+use crate::{BUFFER_SIZE, TITLE};
 
 type HistoryHide = HideableView<LinearLayout>;
 type HistoryScroll = ScrollView<ResizedView<NamedView<SelectView>>>;
@@ -39,13 +44,13 @@ const HISTORY_LEN: usize = 50;
 
 enum Event {
     Clear,
-    Update(String)
+    Update(String),
 }
 
 pub enum Mode {
     RetainColors,
     RemoveColors,
-    SkipColorCheck
+    SkipColorCheck,
 }
 
 pub struct Tui {
@@ -53,7 +58,7 @@ pub struct Tui {
     cb_sink: CbSink,
     error: TextContent,
     color_mode: Mode,
-    history: Option<String>
+    history: Option<String>,
 }
 
 impl Tui {
@@ -65,7 +70,7 @@ impl Tui {
             cb_sink,
             error: TextContent::new(""),
             color_mode: Mode::SkipColorCheck,
-            history: None
+            history: None,
         }
     }
 
@@ -83,8 +88,8 @@ impl Tui {
             v.set_on_pre_event('G', |siv| {
                 if let Some(mut v) = siv.find_name::<SelectView<String>>(CONTENT_VIEW) {
                     let len = v.len();
-                    v.set_selection(len-1)(siv);
-                } 
+                    v.set_selection(len - 1)(siv);
+                }
                 if let Some(mut v) = siv.find_name::<ContentScroll>(CONTENT_SCROLL) {
                     v.scroll_to_bottom();
                     v.set_scroll_strategy(ScrollStrategy::StickToBottom);
@@ -93,7 +98,7 @@ impl Tui {
             v.set_on_pre_event('g', |siv| {
                 if let Some(mut v) = siv.find_name::<SelectView<String>>(CONTENT_VIEW) {
                     v.set_selection(0)(siv);
-                } 
+                }
                 if let Some(mut v) = siv.find_name::<ContentScroll>(CONTENT_SCROLL) {
                     v.scroll_to_top();
                     v.set_scroll_strategy(ScrollStrategy::StickToTop);
@@ -115,85 +120,83 @@ impl Tui {
     fn build_ui(&mut self, tx: std::sync::mpsc::Sender<Event>) {
         let path = self.history.take();
         self.siv.add_fullscreen_layer(
-            OnEventView::new(
-                ResizedView::with_full_screen(
-                    LinearLayout::vertical()
-                        .child(
-                            ResizedView::with_full_height(
-                                Panel::new(
-                                    EnableableView::new(
-                                        OnEventView::new(
-                                            SelectView::<String>::new()
-                                                .with_name(CONTENT_VIEW)
-                                                .full_width()
-                                                .scrollable()
-                                                .show_scrollbars(false)
-                                                .scroll_y(true)
-                                                .scroll_x(true)
-                                                .scroll_strategy(ScrollStrategy::StickToBottom)
-                                                .with_name(CONTENT_SCROLL)
-                                        )
-                                        .with_name(CONTENT_EVENT)
-                                    )
-                                    .with_name(CONTENT_ENABLE)
+            OnEventView::new(ResizedView::with_full_screen(
+                LinearLayout::vertical()
+                    .child(ResizedView::with_full_height(
+                        Panel::new(
+                            EnableableView::new(
+                                OnEventView::new(
+                                    SelectView::<String>::new()
+                                        .with_name(CONTENT_VIEW)
+                                        .full_width()
+                                        .scrollable()
+                                        .show_scrollbars(false)
+                                        .scroll_y(true)
+                                        .scroll_x(true)
+                                        .scroll_strategy(ScrollStrategy::StickToBottom)
+                                        .with_name(CONTENT_SCROLL),
                                 )
-                                .title(TITLE)
+                                .with_name(CONTENT_EVENT),
                             )
+                            .with_name(CONTENT_ENABLE),
                         )
-                        .child(
-                            HideableView::new(
-                                LinearLayout::horizontal()
-                                    .child(DummyView)
-                                    .child(
-                                        SelectView::<String>::new()
-                                            .on_submit(Tui::on_submit_history)
-                                            .with_name(HISTORY_VIEW)
-                                            .full_width()
-                                            .scrollable()
-                                            .with_name(HISTORY_SCROLL)
-                                            .full_width()
-                                            .max_height(5)
-                                    )
-                                    .child(DummyView)
-                            )
-                            .with_name(HISTORY_HIDE)
+                        .title(TITLE),
+                    ))
+                    .child(
+                        HideableView::new(
+                            LinearLayout::horizontal()
+                                .child(DummyView)
+                                .child(
+                                    SelectView::<String>::new()
+                                        .on_submit(Tui::on_submit_history)
+                                        .with_name(HISTORY_VIEW)
+                                        .full_width()
+                                        .scrollable()
+                                        .with_name(HISTORY_SCROLL)
+                                        .full_width()
+                                        .max_height(5),
+                                )
+                                .child(DummyView),
                         )
-                        .child(
-                            HideableView::new(
-                                LinearLayout::horizontal()
-                                    .child(DummyView)
-                                    .child(
-                                        OnEventView::new(
-                                            EditView::new()
-                                                .on_submit(move |s, cmd| Tui::on_submit_command(s, cmd, &tx))
-                                                .with_name(COMMAND_VIEW)
-                                                .fixed_height(1)
-                                                .full_width()
-                                        )
-                                        .on_pre_event(Key::Tab, Tui::on_show_history)
-                                        .with_name(COMMAND_ONEVENT)
-                                    )
-                                    .child(DummyView)
-                            )
-                            .with_name(COMMAND_HIDE)
-                        )
-                        .child(
-                            HideableView::new(
-                                LinearLayout::horizontal()
-                                    .child(DummyView)
-                                    .child(
-                                        TextView::new_with_content(self.error.clone())
-                                            .with_name(ERROR_VIEW)
+                        .with_name(HISTORY_HIDE),
+                    )
+                    .child(
+                        HideableView::new(
+                            LinearLayout::horizontal()
+                                .child(DummyView)
+                                .child(
+                                    OnEventView::new(
+                                        EditView::new()
+                                            .on_submit(move |s, cmd| {
+                                                Tui::on_submit_command(s, cmd, &tx)
+                                            })
+                                            .with_name(COMMAND_VIEW)
                                             .fixed_height(1)
+                                            .full_width(),
                                     )
-                                    .child(DummyView)
-                            )
-                            .with_name(ERROR_HIDE)
+                                    .on_pre_event(Key::Tab, Tui::on_show_history)
+                                    .with_name(COMMAND_ONEVENT),
+                                )
+                                .child(DummyView),
                         )
-                )
-            )
+                        .with_name(COMMAND_HIDE),
+                    )
+                    .child(
+                        HideableView::new(
+                            LinearLayout::horizontal()
+                                .child(DummyView)
+                                .child(
+                                    TextView::new_with_content(self.error.clone())
+                                        .with_name(ERROR_VIEW)
+                                        .fixed_height(1),
+                                )
+                                .child(DummyView),
+                        )
+                        .with_name(ERROR_HIDE),
+                    ),
+            ))
             .on_pre_event(Key::Esc, move |siv| Tui::quit(siv, &path))
-            .with_name(GLOBAL_ONEVENT)
+            .with_name(GLOBAL_ONEVENT),
         );
 
         if let Some(mut v) = self.siv.find_name::<HistoryHide>(HISTORY_HIDE) {
@@ -211,13 +214,18 @@ impl Tui {
         match self.color_mode {
             Mode::SkipColorCheck => self.spawn_update(source, rx, ColoredString::unstyled),
             Mode::RemoveColors => self.spawn_update(source, rx, ColoredString::plain),
-            Mode::RetainColors => self.spawn_update(source, rx, ColoredString::styled)
+            Mode::RetainColors => self.spawn_update(source, rx, ColoredString::styled),
         };
 
         self.siv.run();
     }
 
-    fn select_view_append<T: 'static>(siv: &mut Cursive, id: &str, label: SpannedString<Style>, value: T) {
+    fn select_view_append<T: 'static>(
+        siv: &mut Cursive,
+        id: &str,
+        label: SpannedString<Style>,
+        value: T,
+    ) {
         if let Some(mut v) = siv.find_name::<SelectView<T>>(id) {
             let len = v.len();
             v.add_item(label, value);
@@ -235,7 +243,12 @@ impl Tui {
         }
     }
 
-    fn spawn_update(&mut self, source: Source<String>, rx: std::sync::mpsc::Receiver<Event>, parser: impl Fn(&str) -> SpannedString<Style> + Send + Copy + 'static) {
+    fn spawn_update(
+        &mut self,
+        source: Source<String>,
+        rx: std::sync::mpsc::Receiver<Event>,
+        parser: impl Fn(&str) -> SpannedString<Style> + Send + Copy + 'static,
+    ) {
         let cb_sink = self.cb_sink.clone();
         let error = self.error.clone();
         std::thread::spawn(move || {
@@ -247,41 +260,69 @@ impl Tui {
                     if let Some(ref r) = filter {
                         if r.is_match(&s) {
                             let s: String = s;
-                            if cb_sink.send(Box::new(move |siv| Tui::select_view_append::<String>(siv, CONTENT_VIEW, parser(&s), Default::default()))).is_err() {
+                            if cb_sink
+                                .send(Box::new(move |siv| {
+                                    Tui::select_view_append::<String>(
+                                        siv,
+                                        CONTENT_VIEW,
+                                        parser(&s),
+                                        Default::default(),
+                                    )
+                                }))
+                                .is_err()
+                            {
                                 return;
                             }
                             lines += 1;
                         }
                     } else if filter.is_none() {
-                        if cb_sink.send(Box::new(move |siv| Tui::select_view_append::<String>(siv, CONTENT_VIEW, parser(&s), Default::default()))).is_err() {
+                        if cb_sink
+                            .send(Box::new(move |siv| {
+                                Tui::select_view_append::<String>(
+                                    siv,
+                                    CONTENT_VIEW,
+                                    parser(&s),
+                                    Default::default(),
+                                )
+                            }))
+                            .is_err()
+                        {
                             return;
                         }
                         lines += 1;
                     }
                 }
                 if lines > (2 * BUFFER_SIZE) {
-                    if cb_sink.send(Box::new(|siv| Tui::select_view_clear::<String>(siv, CONTENT_VIEW))).is_err() {
+                    if cb_sink
+                        .send(Box::new(|siv| {
+                            Tui::select_view_clear::<String>(siv, CONTENT_VIEW)
+                        }))
+                        .is_err()
+                    {
                         return;
                     }
                     lines = 0;
                 }
                 if let Ok(ev) = rx.try_recv() {
-                    if cb_sink.send(Box::new(|siv| Tui::select_view_clear::<String>(siv, CONTENT_VIEW))).is_err() {
+                    if cb_sink
+                        .send(Box::new(|siv| {
+                            Tui::select_view_clear::<String>(siv, CONTENT_VIEW)
+                        }))
+                        .is_err()
+                    {
                         return;
                     }
                     lines = 0;
                     match ev {
                         Event::Clear => {
                             filter = None;
-                        },
-                        Event::Update(s) => {
-                            match regex::Regex::new(&s) {
-                                Ok(r) => filter = Some(r),
-                                Err(e) => {
-                                    error.set_content(format!("{:?}", e));
-                                }
-                            }
                         }
+                        Event::Update(s) => match regex::Regex::new(&s) {
+                            Ok(r) => filter = Some(r),
+                            Err(e) => {
+                                error.set_content(format!("{:?}", e));
+                            }
+                        },
                     }
                 }
                 if lines == 0 {
@@ -289,13 +330,33 @@ impl Tui {
                         let item: String = item.into();
                         if let Some(ref r) = filter {
                             if r.is_match(&item) {
-                                if cb_sink.send(Box::new(move |siv| Tui::select_view_append::<String>(siv, CONTENT_VIEW, parser(&item), Default::default()))).is_err() {
+                                if cb_sink
+                                    .send(Box::new(move |siv| {
+                                        Tui::select_view_append::<String>(
+                                            siv,
+                                            CONTENT_VIEW,
+                                            parser(&item),
+                                            Default::default(),
+                                        )
+                                    }))
+                                    .is_err()
+                                {
                                     return;
                                 }
                                 lines += 1;
                             }
                         } else if filter.is_none() {
-                            if cb_sink.send(Box::new(move |siv| Tui::select_view_append::<String>(siv, CONTENT_VIEW, parser(&item), Default::default()))).is_err() {
+                            if cb_sink
+                                .send(Box::new(move |siv| {
+                                    Tui::select_view_append::<String>(
+                                        siv,
+                                        CONTENT_VIEW,
+                                        parser(&item),
+                                        Default::default(),
+                                    )
+                                }))
+                                .is_err()
+                            {
                                 return;
                             }
                             lines += 1;
@@ -304,22 +365,28 @@ impl Tui {
                 } else {
                     std::thread::sleep(std::time::Duration::new(0, 200000));
                 }
-
             }
         });
     }
 
     pub fn use_default_theme(&mut self) {
-        self.siv.load_toml(include_str!("../theme/style.toml")).unwrap();
+        self.siv
+            .load_toml(include_str!("../theme/style.toml"))
+            .unwrap();
     }
 
     pub fn use_custom_theme(&mut self, file: &str) -> Result<(), Error> {
-        self.siv.load_theme_file(file)
+        self.siv
+            .load_theme_file(file)
             .map_err(|_| Error::CustomThemeFailed(file.to_owned()))
     }
 
     fn on_show_history(siv: &mut Cursive) {
-        if !siv.find_name::<SelectView>(HISTORY_VIEW).unwrap().is_empty() {
+        if !siv
+            .find_name::<SelectView>(HISTORY_VIEW)
+            .unwrap()
+            .is_empty()
+        {
             if let Some(mut v) = siv.find_name::<HistoryHide>(HISTORY_HIDE) {
                 v.unhide();
             }
@@ -351,7 +418,7 @@ impl Tui {
                 let mut id = 0;
                 for (_, value) in v.iter() {
                     if value == cmd {
-                        break;   
+                        break;
                     }
                     id += 1;
                 }
@@ -360,7 +427,7 @@ impl Tui {
                 } else if v.len() == HISTORY_LEN {
                     v.remove_item(0);
                 }
-            
+
                 v.add_item_str(cmd);
                 tx.send(Event::Update(cmd.to_owned())).unwrap();
             }
@@ -413,5 +480,3 @@ impl Tui {
         siv.quit();
     }
 }
-
-

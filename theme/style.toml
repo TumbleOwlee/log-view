@@ -16,7 +16,7 @@ borders = "simple" # Alternatives are "none" and "simple"
 
 # If the value is an array, the first valid
 # and supported color will be used.
-background = ["black", "000", "magenta"]
+background = ["black", "000"] 
 
 # If the terminal doesn't support custom color (like the linux TTY),
 # non-base colors will be skipped.
@@ -33,5 +33,5 @@ title_primary   = "#FFFFFF"
 title_secondary = "#FFFFFF"
 
 # Lower precision values can use only 3 digits.
-highlight          = "red" # History view highlight and scroll bar color
+highlight          = "#333333" # History view highlight and scroll bar color
 highlight_inactive = "black" # Inactive scroll bars

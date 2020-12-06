@@ -1,24 +1,11 @@
-
-use std::str::FromStr;
-
+use cursive::theme::{Color, ColorStyle, ColorType, Effect, Style};
 use cursive::utils::span::SpannedString;
-use cursive::theme::{Style, BaseColor, Color, ColorStyle, ColorType};
 
-use crate::ansi::Code;
-use crate::parser::ColorParser;
-
-macro_rules! match_color {
-    ($a:ident, $x:ident, $b:ident, $($y:ident => $z:ident ($h:expr)),+) => (
-        match $a {
-            $(Code::$y => ColorType::$z($h)),+,
-            _ => ColorType::Color(Color::None)
-        }
-    )
-}
+use crate::parser::{ColorMode, ColorParser};
 
 enum Value<'a> {
     Text(&'a str),
-    Color((&'a str, Option<(&'a str, &'a str)>))
+    Color((Option<ColorMode>, Option<ColorMode>, Option<u8>)),
 }
 
 pub struct ColoredString {}
@@ -31,20 +18,20 @@ impl ColoredString {
 
         while !input.is_empty() {
             match ColorParser::parse(input) {
-                Ok((r, (_, _))) => {
+                Ok((r, _)) => {
                     if start < end {
                         values.push(Value::Text(&s[start..end]));
                     }
                     start = s.len() - r.len();
                     end = start;
                     input = r;
-                },
+                }
                 Err(_) => {
                     input = &input[1..];
                     end += 1;
                 }
             }
-        };
+        }
         if start != end {
             values.push(Value::Text(&s[start..end]));
         }
@@ -62,124 +49,73 @@ impl ColoredString {
 
         while !input.is_empty() {
             match ColorParser::parse(input) {
-                Ok((r, (fg, opt))) => {
+                Ok((r, (fg, bg, sp))) => {
                     if start < end {
                         values.push(Value::Text(&s[start..end]));
                     }
-                    values.push(Value::Color((fg, opt)));
+                    values.push(Value::Color((fg, bg, sp)));
                     start = s.len() - r.len();
                     end = start;
                     input = r;
-                },
+                }
                 Err(_) => {
                     input = &input[1..];
                     end += 1;
                 }
             }
-        };
+        }
         if start != end {
             values.push(Value::Text(&s[start..end]));
         }
         Self::create_styled_string(values)
     }
 
-    fn create_style(fg: Code, bg: Code, c: Code) -> Style {
-        let fg = match_color!(fg, style, front,
-            FgRed => Color(Color::Dark(BaseColor::Red)),
-            FgBlue => Color(Color::Dark(BaseColor::Blue)),
-            FgCyan => Color(Color::Dark(BaseColor::Cyan)),
-            FgBlack => Color(Color::Dark(BaseColor::Black)),
-            FgGreen => Color(Color::Dark(BaseColor::Green)),
-            FgYellow => Color(Color::Dark(BaseColor::Yellow)),
-            FgMagenta => Color(Color::Dark(BaseColor::Magenta)),
-            FgWhite => Color(Color::Dark(BaseColor::White)),
-            FgLightRed => Color(Color::Light(BaseColor::Red)),
-            FgLightBlue => Color(Color::Light(BaseColor::Blue)),
-            FgLightCyan => Color(Color::Light(BaseColor::Cyan)),
-            FgLightBlack => Color(Color::Light(BaseColor::Black)),
-            FgLightGreen => Color(Color::Light(BaseColor::Green)),
-            FgLightYellow => Color(Color::Light(BaseColor::Yellow)),
-            FgLightMagenta => Color(Color::Light(BaseColor::Magenta)),
-            FgLightWhite => Color(Color::Light(BaseColor::White))
-        );
-        let bg = match_color!(bg, style, back,
-            BgRed => Color(Color::Dark(BaseColor::Red)),
-            BgBlue => Color(Color::Dark(BaseColor::Blue)),
-            BgCyan => Color(Color::Dark(BaseColor::Cyan)),
-            BgBlack => Color(Color::Dark(BaseColor::Black)),
-            BgGreen => Color(Color::Dark(BaseColor::Green)),
-            BgYellow => Color(Color::Dark(BaseColor::Yellow)),
-            BgMagenta => Color(Color::Dark(BaseColor::Magenta)),
-            BgWhite => Color(Color::Dark(BaseColor::White)),
-            BgLightRed => Color(Color::Light(BaseColor::Red)),
-            BgLightBlue => Color(Color::Light(BaseColor::Blue)),
-            BgLightCyan => Color(Color::Light(BaseColor::Cyan)),
-            BgLightBlack => Color(Color::Light(BaseColor::Black)),
-            BgLightGreen => Color(Color::Light(BaseColor::Green)),
-            BgLightYellow => Color(Color::Light(BaseColor::Yellow)),
-            BgLightMagenta => Color(Color::Light(BaseColor::Magenta)),
-            BgLightWhite => Color(Color::Light(BaseColor::White))
-        );
+    fn create_style(fg: Option<ColorMode>, bg: Option<ColorMode>, sp: Option<u8>) -> Style {
+        let mut fg = match fg {
+            Some(v) => ColorType::Color(v.into()),
+            None => ColorType::Color(Color::None),
+        };
+        let mut bg = match bg {
+            Some(v) => ColorType::Color(v.into()),
+            None => ColorType::Color(Color::None),
+        };
+        let mut effects = Default::default();
+        match sp {
+            Some(3) => std::mem::swap(&mut fg, &mut bg),
+            Some(0) => effects &= Effect::Simple,
+            Some(1) => effects &= Effect::Bold,
+            Some(9) => effects &= Effect::Strikethrough,
+            Some(4) => effects &= Effect::Underline,
+            _ => {}
+        }
 
         Style {
             color: Some(ColorStyle::new(fg, bg)),
-            ..Default::default()
+            effects,
         }
     }
 
-    fn style_detailed(fg: u8, bg: u8, e: u8, s: &str) -> SpannedString<Style> {
-        let fg = num_traits::FromPrimitive::from_u8(fg).unwrap_or(Code::FgDefault);
-        let bg = num_traits::FromPrimitive::from_u8(bg).unwrap_or(Code::BgDefault);
-        let e = num_traits::FromPrimitive::from_u8(e).unwrap_or(Code::ResetNormal);
-
-        let style = Self::create_style(fg, bg, e);
-        SpannedString::styled(s, style)
-    }
-
-    fn style_simple(fg: u8, s: &str) -> SpannedString<Style> {
-        let fg = num_traits::FromPrimitive::from_u8(fg).unwrap_or(Code::FgDefault);
-        let style = Self::create_style(fg, Code::BgDefault, Code::ResetNormal);
-        SpannedString::styled(s, style)
-    }
-
-
     fn create_styled_string(values: Vec<Value>) -> SpannedString<Style> {
         let mut output = SpannedString::new();
-        let mut color: Option<(&str, Option<(&str, &str)>)> = None;
+        let mut color: Option<(Option<ColorMode>, Option<ColorMode>, Option<u8>)> = None;
         let mut text = None;
 
         for val in values.into_iter() {
             match val {
-                Value::Color((fg, opt)) => color = Some((fg, opt)),
-                Value::Text(t) => text = Some(t)
+                Value::Color((fg, bg, sp)) => color = Some((fg, bg, sp)),
+                Value::Text(t) => text = Some(t),
             }
             if text.is_some() {
                 let s = text.take().unwrap();
                 if color.is_some() {
-                    let (fg, opt) = color.take().unwrap();
-                    if let Some((bg, c)) = opt {
-                        output.append(
-                            Self::style_detailed(
-                                u8::from_str(fg).unwrap(), 
-                                u8::from_str(bg).unwrap(), 
-                                u8::from_str(c).unwrap(), 
-                                s
-                            )
-                        );
-                    } else {
-                        output.append(
-                            Self::style_simple(
-                                u8::from_str(fg).unwrap(),
-                                s
-                            )
-                        );
-                    }
+                    let (fg, bg, sp) = color.take().unwrap();
+                    output.append(SpannedString::styled(s, Self::create_style(fg, bg, sp)));
                 } else {
                     output.append(s);
                 }
             }
         }
-        
+
         output
     }
 }
