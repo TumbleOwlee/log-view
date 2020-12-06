@@ -70,6 +70,19 @@ impl Into<CursiveColor> for Color {
 pub struct ColorParser {}
 
 impl ColorParser {
+    fn number_0_to_7(s: &str) -> IResult<&str, &str> {
+        alt((
+            tag("0"),
+            tag("1"),
+            tag("2"),
+            tag("3"),
+            tag("4"),
+            tag("5"),
+            tag("6"),
+            tag("7"),
+        ))(s)
+    }
+
     fn foreground(s: &str) -> IResult<&str, ColorMode> {
         let mut res = tuple((tag("38;2;"), digit1, tag(";"), digit1, tag(";"), digit1))(s).map(
             |(rem, (_, r, _, g, _, b))| {
@@ -92,36 +105,12 @@ impl ColorParser {
             });
         }
         if res.is_err() {
-            res = tuple((
-                tag("3"),
-                alt((
-                    tag("0"),
-                    tag("1"),
-                    tag("2"),
-                    tag("3"),
-                    tag("4"),
-                    tag("5"),
-                    tag("6"),
-                    tag("7"),
-                )),
-            ))(s)
-            .map(|(r, (_, b))| (r, ColorMode::Base16(u8::from_str(b).unwrap())));
+            res = tuple((tag("3"), Self::number_0_to_7))(s)
+                .map(|(r, (_, b))| (r, ColorMode::Base16(u8::from_str(b).unwrap())));
         }
         if res.is_err() {
-            res = tuple((
-                tag("9"),
-                alt((
-                    tag("0"),
-                    tag("1"),
-                    tag("2"),
-                    tag("3"),
-                    tag("4"),
-                    tag("5"),
-                    tag("6"),
-                    tag("7"),
-                )),
-            ))(s)
-            .map(|(r, (_, b))| (r, ColorMode::Base16(8 + u8::from_str(b).unwrap())));
+            res = tuple((tag("9"), Self::number_0_to_7))(s)
+                .map(|(r, (_, b))| (r, ColorMode::Base16(8 + u8::from_str(b).unwrap())));
         }
         if res.is_err() {
             res = tag("39")(s).map(|(r, _)| (r, ColorMode::Default));
@@ -151,36 +140,12 @@ impl ColorParser {
             });
         }
         if res.is_err() {
-            res = tuple((
-                tag("4"),
-                alt((
-                    tag("0"),
-                    tag("1"),
-                    tag("2"),
-                    tag("3"),
-                    tag("4"),
-                    tag("5"),
-                    tag("6"),
-                    tag("7"),
-                )),
-            ))(s)
-            .map(|(r, (_, b))| (r, ColorMode::Base16(u8::from_str(b).unwrap())));
+            res = tuple((tag("4"), Self::number_0_to_7))(s)
+                .map(|(r, (_, b))| (r, ColorMode::Base16(u8::from_str(b).unwrap())));
         }
         if res.is_err() {
-            res = tuple((
-                tag("10"),
-                alt((
-                    tag("0"),
-                    tag("1"),
-                    tag("2"),
-                    tag("3"),
-                    tag("4"),
-                    tag("5"),
-                    tag("6"),
-                    tag("7"),
-                )),
-            ))(s)
-            .map(|(r, (_, b))| (r, ColorMode::Base16(8 + u8::from_str(b).unwrap())));
+            res = tuple((tag("10"), Self::number_0_to_7))(s)
+                .map(|(r, (_, b))| (r, ColorMode::Base16(8 + u8::from_str(b).unwrap())));
         }
         if res.is_err() {
             res = tag("49")(s).map(|(r, _)| (r, ColorMode::Default));
