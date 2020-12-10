@@ -8,7 +8,7 @@ edition = "2018"
 
 [dependencies]
 atty = "*"
-cursive = { git = "https://github.com/tumbleowlee/cursive", branch = 'main', features = ["toml", "crossterm"] }
+cursive = { git = "https://github.com/tumbleowlee/cursive", branch = 'pr/colorNone', features = ["toml", "crossterm"] }
 arraydeque = "0.4.5"
 clap = "2.33.3"
 regex = "1.4.2"

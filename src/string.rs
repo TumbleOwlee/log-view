@@ -73,11 +73,11 @@ impl ColoredString {
     fn create_style(fg: Option<ColorMode>, bg: Option<ColorMode>, sp: Option<u8>) -> Style {
         let mut fg = match fg {
             Some(v) => ColorType::Color(v.into()),
-            None => ColorType::Color(Color::None),
+            None => ColorType::Color(Color::InheritParent),
         };
         let mut bg = match bg {
             Some(v) => ColorType::Color(v.into()),
-            None => ColorType::Color(Color::None),
+            None => ColorType::Color(Color::InheritParent),
         };
         let mut effects = Default::default();
         match sp {

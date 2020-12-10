@@ -46,7 +46,7 @@ impl ColorMode {
 impl Into<CursiveColor> for ColorMode {
     fn into(self) -> CursiveColor {
         match self {
-            ColorMode::Default => CursiveColor::None,
+            ColorMode::Default => CursiveColor::InheritParent,
             ColorMode::Base16(v) => Self::u8_into_color(v),
             ColorMode::Base256(c) => c.into(),
         }
