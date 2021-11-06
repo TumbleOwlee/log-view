@@ -16,12 +16,12 @@ borders = "simple" # Alternatives are "none" and "simple"
 
 # If the value is an array, the first valid
 # and supported color will be used.
-background = ["black", "000"] 
+background = ["#222", "black"]
 
 # If the terminal doesn't support custom color (like the linux TTY),
 # non-base colors will be skipped.
-shadow     = "#000000"
-view       = "#000000"
+shadow     = ["#222", "black"]
+view       = ["#222", "black"]
 
 primary   = "#FFFFFF" # Content view text color
 secondary = "#FFFFFF" # Command view background color

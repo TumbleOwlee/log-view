@@ -1,4 +1,4 @@
-use cursive::theme::{Color, ColorStyle, ColorType, Effect, Style};
+use cursive::theme::{ColorStyle, ColorType, Effect, Style};
 use cursive::utils::span::SpannedString;
 
 use crate::parser::{ColorMode, ColorParser};
@@ -72,12 +72,12 @@ impl ColoredString {
 
     fn create_style(fg: Option<ColorMode>, bg: Option<ColorMode>, sp: Option<u8>) -> Style {
         let mut fg = match fg {
-            Some(v) => ColorType::Color(v.into()),
-            None => ColorType::Color(Color::InheritParent),
+            Some(v) => v.into(),
+            None => ColorType::InheritParent,
         };
         let mut bg = match bg {
-            Some(v) => ColorType::Color(v.into()),
-            None => ColorType::Color(Color::InheritParent),
+            Some(v) => v.into(),
+            None => ColorType::InheritParent,
         };
         let mut effects = Default::default();
         match sp {
@@ -90,7 +90,7 @@ impl ColoredString {
         }
 
         Style {
-            color: Some(ColorStyle::new(fg, bg)),
+            color: ColorStyle::new(fg, bg),
             effects,
         }
     }

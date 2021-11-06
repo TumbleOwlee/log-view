@@ -10,6 +10,7 @@ use std::str::FromStr;
 
 use cursive::theme::BaseColor;
 use cursive::theme::Color as CursiveColor;
+use cursive::theme::ColorType;
 
 type ColorTuple = (Option<ColorMode>, Option<ColorMode>, Option<u8>);
 
@@ -43,12 +44,12 @@ impl ColorMode {
     }
 }
 
-impl Into<CursiveColor> for ColorMode {
-    fn into(self) -> CursiveColor {
+impl Into<ColorType> for ColorMode {
+    fn into(self) -> ColorType {
         match self {
-            ColorMode::Default => CursiveColor::InheritParent,
-            ColorMode::Base16(v) => Self::u8_into_color(v),
-            ColorMode::Base256(c) => c.into(),
+            ColorMode::Default => ColorType::InheritParent,
+            ColorMode::Base16(v) => ColorType::Color(Self::u8_into_color(v)),
+            ColorMode::Base256(c) => ColorType::Color(c.into()),
         }
     }
 }
