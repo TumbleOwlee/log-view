@@ -18,7 +18,6 @@ use crate::buffer::SourceBuffer;
 use crate::error::Error;
 use crate::source::Source;
 use crate::string::ColoredString;
-use crate::{BUFFER_SIZE, TITLE};
 
 type HistoryHide = HideableView<LinearLayout>;
 type HistoryScroll = ScrollView<ResizedView<NamedView<SelectView>>>;
@@ -140,7 +139,7 @@ impl Tui {
                             )
                             .with_name(CONTENT_ENABLE),
                         )
-                        .title(TITLE),
+                        .title("Log View"),
                     ))
                     .child(
                         HideableView::new(
@@ -253,7 +252,7 @@ impl Tui {
         let error = self.error.clone();
         std::thread::spawn(move || {
             let mut lines = 0;
-            let mut buffer: SourceBuffer<[String; BUFFER_SIZE], String> = SourceBuffer::new(source);
+            let mut buffer: SourceBuffer<String> = SourceBuffer::new(source);
             let mut filter: Option<regex::Regex> = None;
             loop {
                 if let Some(s) = buffer.update() {
@@ -292,7 +291,7 @@ impl Tui {
                         lines += 1;
                     }
                 }
-                if lines > (2 * BUFFER_SIZE) {
+                if lines > (2 * 1024) {
                     if cb_sink
                         .send(Box::new(|siv| {
                             Tui::select_view_clear::<String>(siv, CONTENT_VIEW)

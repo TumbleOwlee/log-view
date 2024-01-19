@@ -9,91 +9,62 @@ use crate::error::Error;
 use crate::source::{AsyncFileIn, AsyncPipeIn, Source};
 use crate::tui::{Mode, Tui};
 
-use clap::{App, Arg, ArgMatches};
+use clap::Parser;
 
-const TITLE: &str = "Log View";
-const VERSION: &str = "0.1";
-const AUTHOR: &str = "David Loewe <49597367+TumbleOwlee@users.noreply.github.com>";
-const FILE: &str = "file";
-const THEME: &str = "theme";
-const RETAIN_COLORS: &str = "retain-colors";
-const SKIP_COLOR_CHECK: &str = "skip-color-check";
-const BUFFER_SIZE: usize = 1024;
-const HISTORY: &str = "history";
+/// Simple program to view logs with regex
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    /// Input file
+    #[arg(short, long)]
+    file: Option<String>,
 
-fn main() -> Result<(), Error> {
-    App::new(TITLE)
-        .version(VERSION)
-        .author(AUTHOR)
-        .about("Filter active logs")
-        .arg(
-            Arg::with_name(FILE)
-                .short("f")
-                .long("file")
-                .value_name("FILE")
-                .help("Sets the input file")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::with_name(THEME)
-                .short("t")
-                .long("theme")
-                .value_name("THEME")
-                .help("Set custom theme")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::with_name(RETAIN_COLORS)
-                .short("c")
-                .long("color")
-                .takes_value(false)
-                .help("Retain input colors"),
-        )
-        .arg(
-            Arg::with_name(SKIP_COLOR_CHECK)
-                .short("s")
-                .long("skip")
-                .takes_value(false)
-                .help("Skip color check"),
-        )
-        .arg(
-            Arg::with_name(HISTORY)
-                .long("history")
-                .takes_value(true)
-                .value_name("DESTINATION")
-                .help("Store history on quit"),
-        )
-        .get_matches_safe()
-        .map_err(|e| e.exit())
-        .map(start)
-        .unwrap()
+    /// Custom theme
+    #[arg(short, long)]
+    theme: Option<String>,
+
+    /// Retain input colors
+    #[arg(short, long)]
+    color: bool,
+
+    /// Skip color check
+    #[arg(short, long)]
+    skip: bool,
+
+    /// Store history on quit
+    #[arg(long)]
+    history: Option<String>,
 }
 
-fn start(matches: ArgMatches) -> Result<(), Error> {
-    matches
-        .value_of(FILE)
-        .map_or_else(
-            || AsyncPipeIn::start().map(Source::from),
-            |f| AsyncFileIn::start(f).map(Source::from),
-        )
-        .map(|src| {
-            let mut tui = Tui::new().set_color_mode(if matches.is_present(RETAIN_COLORS) {
-                Mode::RetainColors
-            } else if matches.is_present(SKIP_COLOR_CHECK) {
-                Mode::SkipColorCheck
-            } else {
-                Mode::RemoveColors
-            });
-            if let Some(p) = matches.value_of(HISTORY) {
-                tui.set_history_path(p.into());
-            }
-            if let Some(th) = matches.value_of(THEME) {
-                tui.use_custom_theme(th)?;
-            } else {
-                tui.use_default_theme();
-            }
-            tui.run(src);
-            Ok(())
-        })
-        .unwrap_or_else(Err)
+fn main() -> Result<(), Error> {
+    start(Args::parse())
+}
+
+fn start(args: Args) -> Result<(), Error> {
+    let src = match &args.file {
+            None => AsyncPipeIn::start().map(Source::from),
+            Some(f) => AsyncFileIn::start(f).map(Source::from),
+    }?;
+
+    let retain = match (args.color, args.skip) {
+        (true, _) => Mode::RetainColors,
+        (false, true) => Mode::SkipColorCheck,
+        (_, _) => Mode::RemoveColors,
+    };
+
+    let mut tui = Tui::new().set_color_mode(retain);
+
+    if let Some(p) = &args.history {
+        tui.set_history_path(p.into());
+    }
+
+    if let Some(t) = &args.theme {
+        tui.use_custom_theme(t)?;
+    } else {
+        tui.use_default_theme();
+    }
+
+    tui.run(src);
+    Ok(())
+
 }
